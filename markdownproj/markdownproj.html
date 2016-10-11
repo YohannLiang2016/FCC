@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>markdownproj</title>
+	<meta charset="utf-8">
+	<script src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+	<script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+	<script type='text/Javascript' src='https://helloacm.com/jquery/jquery-2.1.4.min.js'></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.6/marked.min.js"></script>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"/>
+    <style type="text/css">
+    	.container {
+    		margin-top: 20px;
+    	}
+    	.markdown {
+    		height: 600px;
+    	}
+    	
+    </style>
+</head>
+<body>
+	<div class="container" id="container"></div>
+	<script type="text/babel">
+		var Textareacomponet = React.createClass(
+		{
+			handleOnChange: function() {
+				var input = $(".markdown").val();
+				console.log(input);
+				this.props.updateShowText(input);
+			},
+			render: function() {
+				return (<textarea placeholder="Input Your Text" className="markdown col-md-6 col-xs-12" onChange={this.handleOnChange}></textarea>)				
+			}
+		}
+		);
+		var Showcomponent = React.createClass({
+			render: function() {
+				var that = this;	
+				function createMarkup() { 
+					return {__html: that.props.showtext}; 
+				};
+				return 	<div className="showText col-md-6 col-xs-12" dangerouslySetInnerHTML={createMarkup()}></div>;
+			}
+		});
+		var Markdownbox = React.createClass({
+			getInitialState: function() {
+				return {text: ''};
+			},
+			handleTextChange: function(input) {
+				//console.log(input);
+				//var marked = require('marked');
+				var result = marked(input);
+				this.setState({text: result});
+			},
+			render: function() {
+				return (
+					<div className="row">
+						<Textareacomponet updateShowText={this.handleTextChange}/>
+						<Showcomponent showtext={this.state.text}/>
+					</div>
+				);
+			}
+		}
+		);
+		ReactDOM.render(
+		<Markdownbox />
+		,document.getElementById('container'));
+	</script>
+</body>
+</html>

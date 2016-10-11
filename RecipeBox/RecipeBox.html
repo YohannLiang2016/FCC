@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Leaderboardproj</title>
+	<meta charset="utf-8">
+	<script src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+	<script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+	<script type='text/Javascript' src='https://helloacm.com/jquery/jquery-2.1.4.min.js'></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.6/marked.min.js"></script>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"/>
+    <!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap-theme.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.5/react-bootstrap.js"></script>
+    <style type="text/css">
+    </style>
+</head>
+<body>
+	<div class="container" id="container"></div>
+	<script type="text/babel">
+		var Button = ReactBootstrap.Button;
+		var Modal = ReactBootstrap.Modal;
+		var Form = ReactBootstrap.Form;
+		var FormGroup = ReactBootstrap.FormGroup;
+		var FormControl = ReactBootstrap.FormControl;
+		var ControlLabel = ReactBootstrap.ControlLabel;
+		var Accordion = ReactBootstrap.Accordion;
+		var Panel = ReactBootstrap.Panel;
+		var ListGroup = ReactBootstrap.ListGroup;
+		var ListGroupItem = ReactBootstrap.ListGroupItem;
+		var PanelGroup = ReactBootstrap.PanelGroup;
+		var Input = ReactBootstrap.Input;
+		//初始化菜谱
+		var initrecipes = (typeof localStorage["yohannrecipe"] != "undefined") ? JSON.parse(localStorage["recipeBook"]) : [			
+				{food: "apple", ingredients: "a,b,c1"},
+				{food: "banana", ingredients: "d,e,f"}];
+		var RecipeList = React.createClass({
+			getInitialState: function() {
+				return ({showModal: false});
+			},
+			handleDelete: function(e) {
+				var node = e.target;
+				var classNames = $(node).attr('class');
+				var arrClassNames = classNames.split(' ');
+				var foodName = arrClassNames[0];
+				//console.log(foodName);
+				this.props.delelerecipe(foodName);
+			},
+			handleEdit: function(e) {
+				var node = e.target;
+				var classNames = $(node).attr('class');
+				var arrClassNames = classNames.split(' ');
+				var foodName = arrClassNames[0];
+				//console.log(foodName);
+				this.props.editrecipe(foodName);
+			},
+			//for the edit button
+			open: function() {
+			    this.setState({ showModal: true });
+			},
+			close: function() {
+			    this.setState({ showModal: false });
+			},
+			render: function() {
+				var that = this;
+				var foodNodes = this.props.data.map(function(food, index) {
+					var foodDesc =food.ingredients;
+					//console.log(foodDesc);
+					var arrFoodDesc = foodDesc.split(',');
+					var fooditem = arrFoodDesc.map(function(val) {
+						return (<ListGroupItem>{val}</ListGroupItem>)
+					});
+					return (
+						<Panel header={food.food} eventKey={index + 1}>
+							Ingredients
+							<ListGroup>
+								{fooditem}
+							</ListGroup>
+							<Button className={food.food} bsStyle="danger" onClick={that.handleDelete}>Delete</Button>
+							{' '}
+							<Button className={food.food} onClick={that.handleEdit}>Edit</Button>
+						</Panel>
+					)
+				});
+				return (
+						<PanelGroup defaultActiveKey="2" accordion>
+							{foodNodes}
+						</PanelGroup>
+				)
+			}
+		});
+		var Recipebox = React.createClass({
+			getInitialState: function() {
+				return {data: initrecipes,
+				showModal: false,
+				showEditModal: false};
+			},
+			//暂时想不到怎么把edit=delete+add实现，原因是两个setstate
+			handleAddRecipe: function() {
+				var foodname = $(".name").val();
+				//console.log(foodname);
+				var foodDesc = $(".ingredients").val();
+				//console.log(foodDesc);
+				var newdata = this.state.data;
+				newdata.push({food: foodname, ingredients: foodDesc});
+				localStorage.setItem("yohannrecipe", JSON.stringify(newdata));
+				this.setState({data: newdata, showModal: false, showEditModal: false});
+			},
+			handleDeleteRecipe: function(food) {
+				var data1 = this.state.data;
+				var newdata = data1.filter(function(val) {
+					console.log(val.food);
+					console.log(food);
+					if(val.food == food)
+						return false;
+					return true;
+				});
+				//console.log(newdata);
+				localStorage.setItem("yohannrecipe", JSON.stringify(newdata));
+				this.setState({data: newdata});
+			},
+			handleEditRecipe: function() {
+				var food = $(".name").val();
+				var foodDesc = $(".ingredients").val();
+				var data1 = this.state.data;
+				console.log(data1);
+				var newdata = data1.filter(function(val) {
+					if(val.food == food)
+						return false;
+					return true;
+				});
+				newdata.push({food: food, ingredients: foodDesc});
+				localStorage.setItem("yohannrecipe", JSON.stringify(newdata));
+				this.setState({data: newdata, showModal: false, showEditModal: false});
+			},
+			//for the button
+			close: function() {
+			    this.setState({ showModal: false });
+			},
+			//for the button
+			open: function() {
+			    this.setState({ showModal: true });
+			},
+			//for the editbutton
+			editClose: function() {
+				this.setState({ showEditModal: false});
+			},
+			//for the editbutton
+			editOpen: function(food) {
+				var newdata = this.state.data;
+				var objfood = newdata.filter(function(val) {
+					if(val.food === food) {
+						return true;
+					}
+					return false;
+				});
+				var foodName = objfood[0].food;
+				var foodDesc = objfood[0].ingredients;
+								
+				this.setState({showEditModal: true}, function(){
+					$(".name").val(foodName);
+					$(".ingredients").val(foodDesc);
+				});
+			},
+			render: function(){
+			return (
+				<div className="RecipeContainer">
+					<RecipeList data={this.state.data} delelerecipe={this.handleDeleteRecipe} editrecipe={this.editOpen}/>
+					    <Button
+					        bsStyle="primary"
+					        bsSize="large"
+					        onClick={this.open}>
+					        Add a Recipe
+        				</Button>
+
+        				<Modal show={this.state.showModal} onHide={this.close}>
+				          <Modal.Header closeButton>
+				            <Modal.Title>Add a Recipe</Modal.Title>
+				          </Modal.Header>
+				          <Modal.Body>
+				          <Form>
+						    <FormGroup controlId="formInlineName">
+						      <ControlLabel>Recipe Name</ControlLabel>
+						      <FormControl className="name" type="text" placeholder="Recipe Name" />
+						    </FormGroup>
+						    <FormGroup controlId="formInlineEmail">
+						      <ControlLabel>Ingredients</ControlLabel>
+						      <FormControl className="ingredients" type="text" placeholder="Enter Ingredients,Separated,By Commas" />
+						    </FormGroup>
+						  </Form>
+				          </Modal.Body>
+				          <Modal.Footer>
+				          	<Button bsStyle="primary" onClick={this.handleAddRecipe}>Add Recipe</Button>
+				            <Button onClick={this.close}>Close</Button>
+				          </Modal.Footer>
+				        </Modal>
+
+        				<Modal show={this.state.showEditModal} onHide={this.close}>
+				          <Modal.Header closeButton>
+				            <Modal.Title>Edit a Recipe</Modal.Title>
+				          </Modal.Header>
+				          <Modal.Body>
+				          <Form>
+						    <FormGroup controlId="formInlineNamee">
+						      <ControlLabel>Recipe Name</ControlLabel>
+						      <FormControl className="name" type="text" />
+						    </FormGroup>
+						    <FormGroup controlId="formInlineEmaile">
+						      <ControlLabel>Ingredients</ControlLabel>
+						      <FormControl className="ingredients" type="text"/>
+						    </FormGroup>
+						  </Form>
+				          </Modal.Body>
+				          <Modal.Footer>
+				          	<Button bsStyle="primary" onClick={this.handleEditRecipe}>Edit Recipe</Button>
+				            <Button onClick={this.editClose}>Close</Button>
+				          </Modal.Footer>
+				        </Modal>
+				</div>
+			);			
+			}
+		});
+		ReactDOM.render(
+			<Recipebox />,
+			document.getElementById("container")
+		);
+	</script>
+</body>
