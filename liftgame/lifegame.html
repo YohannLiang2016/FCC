@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>LifeGame</title>
+	<meta charset="utf-8">
+	<script src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+	<script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+	<script type='text/Javascript' src='https://helloacm.com/jquery/jquery-2.1.4.min.js'></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.6/marked.min.js"></script>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"/>
+    <!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap-theme.min.css">
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.5/react-bootstrap.js"></script>
+    <style type="text/css">
+    	.dead,.alive{
+    		width: 10px;
+    		height: 10px;
+    		display: inline-block;
+    		border: 1px solid #FF6666;
+    		vertical-align: top;
+    		box-sizing: border-box;
+    	}
+    	.dead {
+    		background-color: #666666;
+    	}
+    	.old {
+    		background-color: #6666FF;
+    	}
+    	.new {
+    		background-color: yellow;
+    	}
+    	#contain {
+    		/*防止上下间隔*/
+    		font-size: 0px;
+    		width: 700px;
+    		height: 500px;
+    	}
+    </style>
+</head>
+<body>
+	<div class="contain" id="contain"></div>
+	<button class="run">Run</button>
+	<button class="pause">Pause</button>
+	<button class="clear">Clear</button>
+	<div>Generation: <span class="generation">1</span>
+	<button class="size50">50x30</button>
+	<button class="size70">70x50</button>
+	<button class="size100">100x80</button>
+	<script type="text/babel">
+		//global variable
+		var checkerboard = [];
+		var width = 70;
+		var height = 50;
+		var pause = false;
+		var clear = false;
+		var generation = 1;
+		var GameContent = React.createClass({
+			render:function() {
+				var cellcollection = this.props.celldesc.map(function(val){
+					return <div className={val.state} id={val.id}></div>
+				});
+				return (
+					<div className="cellcontainer">
+						{cellcollection}
+					</div>
+				);
+			}
+		})
+
+		//the button event
+		$(".pause").on("click", function() {
+			pause = true;
+		});
+		$(".run").on("click", function() {
+			if(clear === true) {
+				generation = 1;
+				$(".generation").text("1");
+				renderCheckBoard();
+				clear = false;
+
+				/*just try test
+				getInitial();
+				generation = 1;
+				$(".generation").text("1");
+				renderCheckBoard();
+				clear = false;
+				*/
+			}
+			pause = false;
+		});
+		$(".clear").on("click", function() {
+			pause = true;
+			checkerboard = [];
+			generation = 0;
+			for(var i = 0; i < width*height; i++){
+				checkerboard.push({id: i, state: "cell dead"});
+			}
+			dropInteractiveListener();
+			renderCheckBoard();
+			addInteractiveListener();
+			$(".generation").text("0");
+			clear = true;
+		});
+		$(".size70").on("click", function() {
+			pause = true;
+			checkerboard = [];
+			width = 70;
+			height = 50;
+			generation = 0;
+			$("#contain").css("width", width*10);
+			$("#contain").css("height", height*10);
+			for(var i = 0; i < width*height; i++){
+				checkerboard.push({id: i, state: "cell dead"});
+			}
+			dropInteractiveListener();
+			renderCheckBoard();
+			addInteractiveListener();
+			$(".generation").text("0");
+			clear = true;
+		});
+		$(".size100").on("click", function() {
+			pause = true;
+			checkerboard = [];
+			width = 100;
+			height = 80;
+			generation = 0;
+			$("#contain").css("width", width*10);
+			$("#contain").css("height", height*10);
+			for(var i = 0; i < width*height; i++){
+				checkerboard.push({id: i, state: "cell dead"});
+			}
+			dropInteractiveListener();
+			renderCheckBoard();
+			addInteractiveListener();
+			$(".generation").text("0");
+			clear = true;
+		});
+		$(".size50").on("click", function() {
+			pause = true;
+			checkerboard = [];
+			width = 50;
+			height = 30;
+			generation = 0;
+			$("#contain").css("width", width*10);
+			$("#contain").css("height", height*10);
+			for(var i = 0; i < width*height; i++){
+				checkerboard.push({id: i, state: "cell dead"});
+			}
+			dropInteractiveListener();
+			renderCheckBoard();
+			addInteractiveListener();
+
+			$(".generation").text("0");
+			clear = true;
+		});
+
+		$(document).ready(function(){
+			getInitial();
+			generation = 1;
+			$(".generation").text("1");
+			renderCheckBoard();
+			addInteractiveListener();
+			run();
+		});
+
+		function addInteractiveListener() {
+			$(".cell").on("click", function() {
+				var id = $(this).attr("id");
+				console.log(id);
+				checkerboard[id].state = "cell alive new";
+				renderCheckBoard();
+			});
+		}
+		function dropInteractiveListener() {
+			$(".cell").off();
+		}
+		function renderCheckBoard() {
+			ReactDOM.render(
+			  <GameContent celldesc={checkerboard} />,
+			  document.getElementById('contain')
+			);
+		}
+		function getInitial() {
+			checkerboard = [];
+			for(var i = 0; i < width*height; i++){
+				checkerboard.push({id: i, state: "cell dead"});
+			}
+			var alivemin = 0;
+			var aliveid = 0;
+			for(var i = 0; i < height; i++){
+				alivemin = Math.floor(15 + Math.random()*10);
+				for(var j = 0; j < alivemin; j++){
+					aliveid = i * width + Math.floor(Math.random()*width);
+					//console.log(checkerboard[aliveid]);
+					checkerboard[aliveid].state = "cell alive old";
+				}
+			}
+			/*输出初始化棋盘
+			for(var i = 0; i < width*height; i++){
+				console.log(checkerboard[i].id + "," + checkerboard[i].state);
+			}
+			*/
+		};
+		function generateNewBoard() {
+			var newCheckerBoard = [];
+			var liveCellAround = 0;
+			newCheckerBoard = checkerboard.map(function(val, index) {
+					liveCellAround = 0;
+					if(val.id % width !== 0 && val.id >= width) {
+						if(checkerboard[val.id - (width + 1)].state === "cell alive old"|| checkerboard[val.id - (width + 1)].state === "cell alive new")
+							liveCellAround++;
+					}
+					if(val.id >= width) {
+						if(checkerboard[val.id - width].state === "cell alive old"|| checkerboard[val.id - width].state === "cell alive new")
+							liveCellAround++;
+
+					}
+					if((val.id + 1) % width !== 0 && val.id >= width) {
+						if(checkerboard[val.id - (width - 1)].state === "cell alive old"|| checkerboard[val.id - (width - 1)].state === "cell alive new")
+							liveCellAround++;
+					}
+					if(val.id % width !== 0){
+						if(checkerboard[val.id - 1].state === "cell alive old"|| checkerboard[val.id - 1].state === "cell alive new")
+							liveCellAround++;
+					}
+					if((val.id + 1) % width !== 0) {
+						if(checkerboard[val.id + 1].state === "cell alive old"|| checkerboard[val.id + 1].state === "cell alive new")
+							liveCellAround++;
+					}
+					if(val.id % width !== 0 && val.id < width*(height-1)) {
+						if(checkerboard[val.id + (width - 1)].state === "cell alive old"|| checkerboard[val.id + (width - 1)].state === "cell alive new")
+							liveCellAround++;
+					}
+					if(val.id < width*(height-1)){
+						if(checkerboard[val.id + width].state === "cell alive old"|| checkerboard[val.id + width].state === "cell alive new")
+							liveCellAround++;
+					}
+					if(val.id < width*(height-1) && (val.id + 1) % width !== 0){
+						if(checkerboard[val.id + (width + 1)].state === "cell alive old"|| checkerboard[val.id + (width + 1)].state === "cell alive new")
+							liveCellAround++;
+					}
+					var aliveOldCell = {id: index, state: "cell alive old"};
+					var aliveNewCell = {id: index, state: "cell alive new"};
+					var deadCell = {id: index, state: "cell dead"};
+					//if(liveCellAround === 2 && (val.state === "cell alive new" || val.state === "cell alive old"))
+						//return aliveOldCell;
+					if(liveCellAround === 2 && val.state === "cell alive new")
+						return aliveOldCell;
+					if(liveCellAround === 2 && val.state === "cell alive old")
+						return aliveOldCell;
+					if(liveCellAround === 3){
+						if(val.state === "cell alive new" || val.state === "cell alive old")
+							return aliveOldCell;
+						if(val.state === "cell dead") {
+							return aliveNewCell;
+						}
+					}
+					return deadCell;
+			});
+			checkerboard = newCheckerBoard;
+		}
+		function run() {
+			setTimeout(function() {
+			if(pause === false) {
+				generateNewBoard();
+				generation++;
+				$(".generation").text(generation);
+				renderCheckBoard();
+				}
+				run();
+			},100)
+		}
+
+
+	</script>
+</body>
