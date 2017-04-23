@@ -1,0 +1,269 @@
+<html>  
+<head>  
+	<meta charset="utf-8">  
+	<title>温度图</title>  
+
+<style>
+	.area {
+		fill: steelblue;
+	}	
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+	svg {
+		margin: auto auto;
+		display: block
+	}
+</style>
+</head>
+<body>  
+	<div class="container"></div>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>  
+	<script>
+		var margin = {top: 100, right: 100, bottom: 100, left: 100}, //坐标轴离svg的距离
+			//width = 960 - margin.left - margin.right, //坐标轴宽度
+			//height = 500 - margin.top - margin.bottom; //坐标轴的高度
+			width = 1240 - margin.left - margin.right, //坐标轴宽度
+			height = 600 - margin.top - margin.bottom; //坐标轴的高度
+
+		var month = [ "January", "February", "March", "April", "May", "June", 
+					"July", "August", "September", "October", "November", "December" ];
+		var format = d3.time.
+		format("%m-%Y");
+
+		var x = d3.time.scale() 
+				.range([0, width]);
+
+		var y = d3.scale.ordinal()
+				.rangePoints([0, height - height / 12]);
+		var xAxis = d3.svg.axis()
+				.scale(x)
+				.orient("bottom")
+				.ticks(d3.time.year, 10);
+				//.tickFormat(d3.time.format("%y"));
+
+		function temperaturecolor(i) {
+			var color = ["#8000ff", "#0000ff", "#0080ff", "#e6f2ff", "#ffcc80",
+			"#ffcc00", "#ffbf00",  "#ff8000", "#ff4000", "#ff0000"];
+			return color[i];
+		}
+
+			var colorchange = ["#8000ff", "#0000ff", "#0080ff", "#e6f2ff", "#ffcc80",
+			"#ffcc00", "#ffbf00",  "#ff8000", "#ff4000", "#ff0000"];
+
+		var color = d3.scale.category20();
+		//画布以及在画布添加'g'元素准备画坐标轴,svg实际上指g
+		var svg = d3.select(".container").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom);
+		var coordinates = svg.append("g") //画布中添加g来画坐标轴
+		  	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		d3.json("file.json", function(error, json) {
+		//d3.json("https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/global-temperature.json", function(error, json) {
+		    if (error) return console.warn(error);
+		    console.log(json);
+		    data = json.monthlyVariance;
+		    var baseTemperature = json.baseTemperature;
+		  	console.log(data);
+		  	
+		  	var time1 = data.map(function(d) {
+		  		return format.parse(d.month + "-" + d.year);
+		  	});
+		  	console.log(time1);
+
+		  	//var temp = calculateMBFT(time1);
+		    //完整比例尺
+		    //根据数据格式改变数据格式
+		    x.domain(d3.extent(time1, function(d) {return d})); //返回最小，最大值组成的数组
+
+		    y.domain(month);
+
+		  	//console.log(width / time1.length);
+		    //加一个g，添加坐标轴
+		    coordinates.append("g")
+		    	.attr("class", "x axis")
+		    	.attr("transform", "translate(0," + height + ")")
+				.call(xAxis)
+			  .append("text")
+			  .attr("transform", "translate("+ width/2 + ",0)")
+			  .attr("y", 50)
+			  .text("Year")
+			  .attr("font-size", "25")
+			  .attr("text-anchor", "middle");
+
+			//类Y轴
+			coordinates.selectAll(".month")
+				.data(month)
+				.enter()
+			  .append("g")
+			  	.attr("class", "month")
+				.attr("transform", function(d, i) {
+					var dy = y(d);
+					return "translate(0," + dy + ")"; 
+				})
+			  .append("text")
+				.text(function(d) {
+					return d;
+				})				
+				//.attr("x", -80)
+				.attr("y", "1.5em")
+				.attr("text-anchor", "end");
+
+			//类Y轴的标题
+			var middley = y("June");
+			coordinates.append("g")
+					.attr("transform", "translate(-80," + middley + ")")
+				  .append("text")
+				  	.attr("transform", "rotate(-90)")
+					.attr("font-size", "25")
+				  	.text("month")
+				  	.attr("text-anchor", "middle");
+
+			//总标题
+			var title = coordinates.append("g")
+					.attr("transform", "translate("+ width/2 + ",0)");
+
+			title.append("text")
+					.attr("y", -65)
+					.attr("font-size", "35")
+				  	.text("Monthly Global Land-Surface Temperature")
+				  	.attr("text-anchor", "middle");
+
+			title.append("text")
+					.attr("y", -40)
+					.attr("font-size", "25")
+				  	.text("1753 - 2015")
+				  	.attr("text-anchor", "middle");
+
+			title.append("text")
+					.attr("y", -25)
+					.attr("font-size", "15")
+				  	.text("Temperatures are in Celsius and reported as anomalies relative to the Jan 1951-Dec 1980 average.")
+				  	.attr("text-anchor", "middle");			
+			//todo change 与上面合并 添加颜色
+			title.append("text")
+					.attr("y", -10)
+					.attr("font-size", "15")
+				  	.text("Estimated Jan 1951-Dec 1980 absolute temperature ℃: 8.66 +/- 0.07")
+				  	.attr("text-anchor", "middle");	
+
+			//用来装长方形的g
+			var rect = coordinates.selectAll(".rect")
+						.data(data)
+						.enter()
+					  .append("g")
+						.attr("class", "rect")
+						.attr("transform", function(d, i) {
+							var formattime = format.parse(d.month + "-" + d.year);
+							var dx = x(formattime);
+							var dy = y(month[d.month - 1]);
+							//console.log(month[d.month - 1]);
+							return "translate(" + dx + "," + dy + ")"; 
+						});
+
+			var arrMinMax = data.reduce(function(arrLast, val) {
+				if(arrLast[0] > val.variance) {
+					arrLast[0] = val.variance;
+				}
+				if(arrLast[1] < val.variance) {
+					arrLast[1] = val.variance;
+				}
+				return arrLast;
+			}, [100, -100]);
+			var detaTemperature = (arrMinMax[1] - arrMinMax[0]) / 10.0;
+			var min = arrMinMax[0];
+			var max = arrMinMax[1];
+			console.log(detaTemperature);
+			rect.append("rect")
+				.attr({
+					"width": width * 12 / time1.length ,
+					"height": height / 12
+				})
+				.style("fill", function(d, i) {
+					if(d.variance < min + detaTemperature)
+						return temperaturecolor(0);
+					if(d.variance < min + detaTemperature * 2)
+						return temperaturecolor(1);
+					if(d.variance < min + detaTemperature * 3)
+						return temperaturecolor(2);
+					if(d.variance < min + detaTemperature * 4)
+						return temperaturecolor(3);
+					if(d.variance < min + detaTemperature * 5)
+						return temperaturecolor(4);
+					if(d.variance < min + detaTemperature * 6)
+						return temperaturecolor(5);
+					if(d.variance < min + detaTemperature * 7)
+						return temperaturecolor(6);
+					if(d.variance < min + detaTemperature * 8)
+						return temperaturecolor(7);
+					if(d.variance < min + detaTemperature * 9)
+						return temperaturecolor(8);	
+					return temperaturecolor(9);
+				})
+				.on("mouseover", function(d) {
+					tooltip.text(d.year + "-" + month[d.month-1] + " " + (baseTemperature + d.variance).toFixed(2) + " " + d.variance.toFixed(2));
+					tooltip.style("visibility", "visible");
+				})
+				.on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+				.on("mouseout", function(d) {
+					tooltip.style("visibility", "hidden");
+				});
+
+			//颜色进度条
+			var colorline = coordinates.append("g")
+					    	.attr("class", "colorline")
+		    				.attr("transform", "translate(" + (width/2 + 120)+ "," + (height + 50) + ")");
+
+		    var coloridentification = colorline.selectAll(".coloridentification")
+		    		.data(colorchange)
+		    		.enter()
+		    	  .append("g")
+		    	  	.attr("class", "coloridentification")
+		    	  	.attr("transform", function(d, i) {
+		    	  		return "translate(" + i * 40 + ",0)";
+		    	  	});
+
+		    coloridentification.append("rect")
+		    	.attr({
+					"width": 40,
+					"height": 25
+				})
+				.style("fill", function(d, i) {
+					return d;
+				});
+
+			coloridentification.append("text")
+				.attr("font-size", 5)
+				.attr("x", -10)
+				.text(function(d, i) {
+					if(i === 9)
+						return  (baseTemperature + (min + detaTemperature * i)).toFixed(2) 
+					+ "\u00A0" + (max + baseTemperature).toFixed(2);
+					return (baseTemperature + (min + detaTemperature * i)).toFixed(2);
+					//todo调整颜色文字位置
+					}
+				);
+
+
+			//tooltip		
+			var tooltip = d3.select("body")
+				.append("div")
+			    .style("position", "absolute")
+			    .style("z-index", "10")
+			    .style("visibility", "hidden")
+			    .style("background", "#000000")
+			    .style("color", "#ffffff")
+			    .style("opacity", 0.6)
+			    .style("border-radius", "5px")
+			    .text("a simple tooltip")
+			    .style("top", margin.top.toString())
+			    .style("left", margin.left + 100)
+			    .style("width", "200px");	
+		});	
+	</script>  
+</body>  
+</html>  

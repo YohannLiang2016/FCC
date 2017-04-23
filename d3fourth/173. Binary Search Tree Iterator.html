@@ -1,0 +1,50 @@
+<script type="text/javascript">
+/**
+ * Definition for binary tree
+ * function TreeNode(val) {
+ *     this.val = val;
+ *     this.left = this.right = null;
+ * }
+ */
+
+/**
+ * 思路：
+ * 二分查找树中序遍历即从大到小排列
+ * @constructor
+ * @param {TreeNode} root - root of the binary search tree
+ */
+var BSTIterator = function(root) {
+  this.nextElements = [];
+  this.root = root;
+  var temp = root;
+  while(temp !== null) {
+  	this.nextElements.push(temp);
+  	temp = temp.left;
+  }  
+};
+
+
+/**
+ * @this BSTIterator
+ * @returns {boolean} - whether we have a next smallest number
+ */
+BSTIterator.prototype.hasNext = function() {
+	if(this.nextElements.length !== 0)
+		return true;
+	return false;   
+};
+
+/**
+ * @this BSTIterator
+ * @returns {number} - the next smallest number
+ */
+BSTIterator.prototype.next = function() {
+    var result = this.nextElements.pop();
+    var temp = result.right;
+    while(temp !== null) {
+    	this.nextElements.push(temp);
+    	temp = temp.left;
+    }
+    return result.val;
+};
+</script>

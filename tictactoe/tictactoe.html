@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.0/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://code.jquery.com/resources/demos/style.css">
+    <style>
+      body {
+        background-color: #2F4F4F;
+        color: #2F4F4F;
+        font-size: 10px;
+      }    
+      .gamecontent {
+        font-size: 50px
+      }
+      .gamebox {
+        border: 2px solid #2F4F4F;
+        display: inline-block;
+        background-color: white;
+        border-radius: 5px;
+        width: 100px;
+      }
+      .forcenter {
+      min-height: 100%;   /*Fallback for browsers do NOT support vh unit */
+      min-height: 100vh;  /*These two lines are counted as one :-)*/       
+
+      display: flex;
+      align-items: center;
+    }
+    #dialog-confirm {
+      font-size: 10px;
+    }
+    </style>
+  </head>
+  <script type='text/Javascript' src='https://helloacm.com/jquery/jquery-2.1.4.min.js'></script>
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+  <script type='text/Javascript'>
+  $(document).ready(function(){
+    var StartTurn;
+    $( "#dialog-confirm" ).hide();
+    $( "#choose-confirm" ).dialog({
+          show: { effect: "blind", duration: 800 },
+          hide: { effect: "explode", duration: 1000 },
+          resizable: false,
+          height: "auto",
+          width: 300,
+          modal: true,
+          buttons: {  
+            x: function() {
+              var j = Math.floor(Math.random() * 3);
+              var i = Math.floor(Math.random() * 3);
+              $(".gamebox" + j + i).text('o');
+              StartTurn = 'o';
+              $(this).dialog("close");
+            },
+            o: function() {
+              var j = Math.floor(Math.random() * 3);
+              var i = Math.floor(Math.random() * 3);
+              $(".gamebox" + j + i).text('x');
+              StartTurn = 'x';
+              $(this).dialog("close");
+            }
+          }
+        });
+    $(".gamebox").bind("click", function() {
+      if(StartTurn === 'o') {
+        $(this).text('x');
+      }else {
+        $(this).text('o');
+      }
+      //游戏是否结束,x表示x赢了，o表示o赢了，d表示平局，c表示还要继续玩。
+      function gameOver(arr) {
+        var str;
+        for(var j = 0; j < 3; j++){
+          for(var i = 0; i < 3; i++) {
+            if(arr[j][i] === undefined)
+              break;
+            str += arr[j][i];
+            if(str === 'xxx')
+              return 'x';
+            if(str === 'ooo')
+              return 'o'; 
+          }
+          str = '';
+        }
+
+        for(var j = 0; j < 3; j++) {
+          for(var i = 0; i < 3; i++) {
+            if(arr[i][j] === undefined)
+              break;
+            str += arr[i][j];
+            if(str === 'xxx')
+              return 'x';
+            if(str === 'ooo')
+              return 'o';
+          }
+          str = '';
+        }
+        for(var i = 0; i < 3; i++) {
+          if(arr[i][i] === undefined)
+            break;
+          str += arr[i][i];
+          if(str === 'xxx')
+            return 'x';
+          if(str === 'ooo')
+            return 'o';
+        }
+        str = '';
+        for(var i = 0; i < 3; i++) {
+          if(arr[i][2-i] === undefined)
+            break;
+          str += arr[i][2-i];
+          if(str === 'xxx')
+            return 'x';
+          if(str === 'ooo')
+            return 'o';
+        }
+        str = '';
+        var flag = false;
+        for(var j = 0; j < 3; j++){
+          for(var i = 0; i < 3; i++) {
+            if(arr[i][j] === undefined){
+              flag = true;
+              break;
+            }
+          }
+          if(flag)
+            break;
+        }
+        if(flag === false)
+          return 'd';
+        return 'c';
+      }
+      function minimax(arr, thisturn ,depth ,theta, beta) {
+        var isGameOver = gameOver(arr);
+        if(isGameOver=== 'd')
+          return 0;
+        if(isGameOver === StartTurn) {
+          return 10 - depth;
+        }
+        if(isGameOver !== 'c') {
+          return -10 + depth;
+        }
+        depth += 1;
+        var arrCopy = new Array(3);
+      for (var i = 0; i < 3; i++) {
+        arrCopy[i] = new Array(1);
+      }
+        //var scores = [];
+        var moves = [];
+        //找出还没有填的节点
+        for(var j = 0; j < 3; j++){
+          for(var i = 0; i < 3; i++) {
+            if(arr[j][i] === undefined){
+            moves.push([j, i]);
+            }
+            arrCopy[j][i] = arr[j][i];
+          }
+        }
+        var scores = [];
+        var nowtheta = theta;
+        var nowbeta = beta;
+        var scoreslist = [];
+        for(var i = 0; i < moves.length; i++) {
+            if(thisturn === 'o'){
+              //todo add alpha beta
+              arrCopy[moves[i][0]][moves[i][1]] = 'o';
+              scoreslist.push(minimax(arrCopy, 'x' ,depth, nowtheta, nowbeta));
+              if(thisturn === StartTurn) {                
+                if(scoreslist[scoreslist.length - 1] > nowtheta)
+                  nowtheta = scoreslist[scoreslist.length - 1];
+              }else {
+                  if(scoreslist[scoreslist.length - 1] < nowbeta)
+                  nowbeta = scoreslist[scoreslist.length - 1];
+              }
+              if(nowtheta >= nowbeta) {
+                if(thisturn === StartTurn)
+                  return 1000;
+                else
+                  return -1000;
+              }
+            }else{
+            arrCopy[moves[i][0]][moves[i][1]] = 'x';
+            scoreslist.push(minimax(arrCopy, 'o', depth, nowtheta, nowbeta));
+              if(thisturn === StartTurn) {                
+                if(scoreslist[scoreslist.length - 1] > nowtheta)
+                  nowtheta = scoreslist[scoreslist.length - 1];
+              }else {
+                  if(scoreslist[scoreslist.length - 1] < nowbeta)
+                  nowbeta = scoreslist[scoreslist.length - 1];
+              }
+            if(nowtheta >= nowbeta) {
+                if(thisturn === StartTurn)
+                  return 1000;
+                else
+                  return -1000;
+              }
+          }
+          arrCopy[moves[i][0]][moves[i][1]] = undefined;
+        }
+        if(thisturn === StartTurn) {
+          return nowtheta;
+        }else {
+          return nowbeta;
+        }
+        /*
+        scores = moves.reduce(function(scoreslist, val) {
+          if(thisturn === 'o'){
+            //todo add alpha beta
+            arrCopy[val[0]][val[1]] = 'o';
+            scoreslist.push(minimax(arrCopy, 'x' ,depth));
+          }
+          else{
+            arrCopy[val[0]][val[1]] = 'x';
+            scoreslist.push(minimax(arrCopy, 'o', depth));
+          }
+          arrCopy[val[0]][val[1]] = undefined;
+          return scoreslist;
+        }, []);
+
+        if(thisturn === StartTurn){
+          maxScore = scores.reduce(function(preval, currval) {
+            if(preval < currval)
+              return currval;
+            else
+              return preval;
+          });
+          return maxScore;
+        }else {
+          minScore = scores.reduce(function(preval, currval) {
+            if(preval > currval)
+              return currval;
+            else
+              return preval;
+          });
+          return minScore;
+        }
+        */
+      }
+
+
+      var arr = new Array(3);
+    for (var i = 0; i < 3; i++) {
+      arr[i] = new Array(1);
+    }
+      var undefinedNode = [];
+      //填充节点
+      for(var j = 0; j < 3; j++){
+        for(var i = 0; i < 3; i++) {
+          // var f = $(".gamebox" + j + i).text();
+          arr[j][i] = $(".gamebox" + j + i).text();
+          if(arr[j][i] !== 'o' && arr[j][i] !== 'x'){
+          arr[j][i] = undefined;
+          undefinedNode.push([j, i])
+          }
+        }
+      }
+      var result;
+      var resultj;
+      var resulti;
+      result = undefinedNode.reduce(function(preval, currval) {
+        arr[currval[0]][currval[1]] = StartTurn;
+        var depth = 0;
+        var score;
+        var theta = -10000;
+        var beta = 10000;
+        if(StartTurn === 'o')
+            score = minimax(arr, 'x', depth ,theta, beta);
+          else
+            score = minimax(arr, 'o', depth ,theta, beta);
+        if(score >= preval){
+          resultj = currval[0];
+          resulti = currval[1];
+          preval = score;
+        }
+        arr[currval[0]][currval[1]] = undefined;
+        return preval;
+      }, 0);
+      $(".gamebox" + resultj + resulti).text(StartTurn);
+      arr[resultj][resulti] = StartTurn;
+      var winner = gameOver(arr);
+      if(winner === 'o' || winner === 'x') {
+        if(winner === 'o'){
+          $(".whowin").text("o win!");
+        }
+        if(winner === 'x'){
+          $(".whowin").text("x win!");
+        }       
+        $( "#dialog-confirm" ).dialog({
+          show: { effect: "blind", duration: 800 },
+          hide: { effect: "explode", duration: 1000 },
+          resizable: false,
+          height: "auto",
+          width: 300,
+          modal: true,
+          buttons: {  
+            Reset: function() {
+                for(var j = 0; j < 3; j++){
+                  for(var i = 0; i < 3; i++) {
+                    $(".gamebox" + j + i).html('&nbsp;');
+                  }
+                }
+                $( "#choose-confirm" ).dialog({
+                  show: { effect: "blind", duration: 800 },
+                  hide: { effect: "explode", duration: 1000 },
+                  resizable: false,
+                  height: "auto",
+                  width: 300,
+                  modal: true,
+                  buttons: {
+                    x: function() { 
+                      var j = Math.floor(Math.random() * 3);
+                      var i = Math.floor(Math.random() * 3);
+                      $(".gamebox" + j + i).text('o');
+                      StartTurn = 'o';
+                      $(this).dialog("close");
+                    },
+                    o: function() {
+                      var j = Math.floor(Math.random() * 3);
+                      var i = Math.floor(Math.random() * 3);
+                      $(".gamebox" + j + i).text('x');
+                      StartTurn = 'x';
+                      $(this).dialog("close");
+                    }
+                  }
+                });
+                for(var j = 0; j < 3; j++){
+                  for(var i = 0; i < 3; i++) {
+                  $(".gamebox" + j + i).html('&nbsp;');
+                  }
+                }           
+                $( this ).dialog( "close" );
+            },
+            Cancel: function() {
+              $( this ).dialog( "close" );
+            }
+          }
+        });
+        $( "#dialog-confirm" ).show();
+      }
+      if(winner === 'd') {
+        $(".whowin").text("draw!");
+        $( "#dialog-confirm" ).dialog({
+          show: { effect: "blind", duration: 800 },
+          hide: { effect: "explode", duration: 1000 },
+          resizable: false,
+          height: "auto",
+          width: 300,
+          modal: true,
+          buttons: {  
+            Reset: function() {
+              for(var j = 0; j < 3; j++){
+                for(var i = 0; i < 3; i++) {
+                  $(".gamebox" + j + i).html('&nbsp;');
+                }
+              } 
+              $( "#choose-confirm" ).dialog({
+                  show: { effect: "blind", duration: 800 },
+                  hide: { effect: "explode", duration: 1000 },
+                  resizable: false,
+                  height: "auto",
+                  width: 300,
+                  modal: true,
+                  buttons: { 
+                    x: function() {
+                      var j = Math.floor(Math.random() * 3);
+                      var i = Math.floor(Math.random() * 3);
+                      $(".gamebox" + j + i).text('o');
+                      StartTurn = 'o';
+                      $(this).dialog("close");
+                    },
+                    o: function() {
+                      var j = Math.floor(Math.random() * 3);
+                      var i = Math.floor(Math.random() * 3);
+                      $(".gamebox" + j + i).text('x');
+                      StartTurn = 'x';
+                      $(this).dialog("close");
+                    }
+                  }
+                });          
+                $( this ).dialog( "close" );
+            },
+            Cancel: function() {
+              $( this ).dialog( "close" );
+            }
+          }
+        });
+        $( "#dialog-confirm" ).show();
+      }
+    });
+  });
+  </script>
+  <body>
+    <div class="forcenter">
+      <div id="dialog-confirm" title="opp" style="font-size: 10px color:blue">
+        <p class="whowin" style="font-size:10px"><span class="ui-icon ui-icon-alert" style="float:left;color:white;"></span>o win</p>
+    </div>
+    <div id="choose-confirm" title="choose o or x" style="font-size: 10px color:blue">
+        <p style="font-size:10px"><span class="ui-icon ui-icon-alert" style="float:left;color:white;"></span>choose o or x</p>
+    </div>
+      <div class="container gamecontent">
+        <div class="text-center">
+        <div class="gamebox gamebox00">&nbsp;</div>
+        <div class="gamebox gamebox01">&nbsp;</div>
+        <div class="gamebox gamebox02">&nbsp;</div>
+        </div>
+        <div class="text-center">
+        <div class="gamebox gamebox10">&nbsp;</div>
+        <div class="gamebox gamebox11">&nbsp;</div>
+        <div class="gamebox gamebox12">&nbsp;</div>
+        </div>
+        <div class="text-center">
+        <div class="gamebox gamebox20">&nbsp;</div>
+        <div class="gamebox gamebox21">&nbsp;</div>
+        <div class="gamebox gamebox22">&nbsp;</div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>

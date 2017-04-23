@@ -50,14 +50,23 @@
 	<button class="size50">50x30</button>
 	<button class="size70">70x50</button>
 	<button class="size100">100x80</button>
+	<button class="slow">Slow</button>
+	<button class="middle">Middle</button>
+	<button class="fast">Fast</button>
 	<script type="text/babel">
 		//global variable
+		var speedmap = {
+			slow: 1000,
+			middle: 500,
+			fast: 100
+		}
 		var checkerboard = [];
 		var width = 70;
 		var height = 50;
 		var pause = false;
 		var clear = false;
 		var generation = 1;
+		var speed = speedmap.fast;
 		var GameContent = React.createClass({
 			render:function() {
 				var cellcollection = this.props.celldesc.map(function(val){
@@ -157,6 +166,15 @@
 			$(".generation").text("0");
 			clear = true;
 		});
+		$(".slow").on("click", function() {
+			speed = speedmap.slow;
+		})
+		$(".middle").on("click", function() {
+			speed = speedmap.middle;
+		})
+		$(".fast").on("click", function() {
+			speed = speedmap.fast;
+		})
 
 		$(document).ready(function(){
 			getInitial();
@@ -272,7 +290,7 @@
 				renderCheckBoard();
 				}
 				run();
-			},100)
+			},speed)
 		}
 
 

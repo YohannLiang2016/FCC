@@ -1,0 +1,177 @@
+<html>  
+<head>  
+	<meta charset="utf-8">  
+	<title>完整的柱形图</title>  
+
+<style>
+	.area {
+		fill: steelblue;
+	}	
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+	svg {
+		margin: auto auto;
+		display: block
+	}
+</style>
+</head>
+<body>  
+	<div class="container"></div>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>  
+	<script>
+		var MONTH = ["January", "February", "March", "April", "May", "June", 
+		"July", "August", "September", "October", "November", "December"];
+
+		var margin = {top: 20, right: 100, bottom: 20, left: 100}, //坐标轴离svg的距离
+			//width = 960 - margin.left - margin.right, //坐标轴宽度
+			//height = 500 - margin.top - margin.bottom; //坐标轴的高度
+			width = 1240 - margin.left - margin.right, //坐标轴宽度
+			height = 500 - margin.top - margin.bottom; //坐标轴的高度
+		
+		//规范化时间？？
+		var parseDate = d3.time.format("%Y-%m-%d").parse;
+
+		/**
+		 * 将数值四舍五入(保留1位小数)后格式化成金额形式
+		 *
+		 * @param num 数值(Number或者String)
+		 * @return 金额格式的字符串,如'1,234,567.4'
+		 * @type String
+		 */
+		function formatCurrencyTenThou(num) {
+		    num = num.toString().replace(/\$|\,/g,'');
+		    if(isNaN(num))
+		    num = "0";
+		    sign = (num == (num = Math.abs(num)));
+		    num = Math.floor(num*10+0.50000000001);
+		    cents = num%10;
+		    num = Math.floor(num/10).toString();
+		    for (var i = 0; i < Math.floor((num.length-(1+i))/3); i++)
+		    num = num.substring(0,num.length-(4*i+3))+','+
+		    num.substring(num.length-(4*i+3));
+		    return (((sign)?'':'-') + num + '.' + cents);
+		}
+
+		var x = d3.time.scale() 
+			.range([0, width]); 
+
+		var y = d3.scale.linear()
+			.range([height, 0]);
+
+		//x轴
+		var xAxis = d3.svg.axis()
+			.scale(x)
+			.orient("bottom");
+
+		var yAxis = d3.svg.axis()
+			.scale(y)
+			.orient("left");
+
+		//画布以及在画布添加'g'元素准备画坐标轴,svg实际上指g
+		var svg = d3.select(".container").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
+		  .append("g") //画布中添加g来画坐标轴
+		  	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		svg.append("text")
+			.attr("transform", "translate(" + (width + margin.left + margin.right)/2.0 + ",0)")
+			.attr("fill", "steelblue")
+			.attr("font-size", "30px")
+			.text("Gross Domestic Product")
+			.attr("y", 20)
+			.attr("text-anchor", "end");
+
+		d3.json("file.json", function(error, json) {
+		  if (error) return console.warn(error);
+		  	data = json.data;
+
+		    //完整比例尺
+		    //根据数据格式改变数据格式
+		    x.domain(d3.extent(data, function(d) {return parseDate(d["0"])})); //返回最小，最大值组成的数组
+		    y.domain([0, d3.max(data, function(d) {return d["1"];})]);
+
+		    //一个bar是g装着一个rect
+		    var bar = svg.selectAll(".bar")
+				.data(data) //绑定数据
+				.enter()
+			  .append("g")
+			  	.attr("class", "bar")
+			  	.attr("transform", function(d, i) {
+			  		console.log(x(parseDate(d["0"])));
+					return "translate(" + i * 4 + ",0)";
+			 	  });
+
+
+			//tooltip
+			var tooltip = d3.select("body")
+			    .append("div")
+			    .attr("fill", "none")
+			    .style("position", "absolute")
+			    .style("z-index", "10")
+			    .style("visibility", "hidden")
+			    .style("background", "#b3d9ff")
+			    .style("opacity", 0.6)
+			    .style("border-radius", "5px")
+			    .text("a simple tooltip");
+
+			bar.append("rect")
+				.attr({
+					"y": function(d) {
+						return y(d["1"]);
+					},
+					"width": Math.round(width/275.0),
+					"height": function(d, j) {
+						return height - y(d["1"]);
+					}
+				})
+				.style("fill", "steelblue")
+			    .on("mouseover", function(d){	
+
+
+					//选中自己令自己变色
+		            d3.select(this)
+		                .style("fill","#b3d9ff");
+
+			    	var value = formatCurrencyTenThou(d["1"]);			
+			    	var month = MONTH[+(d["0"].split("-")[1])];
+			    	var year = +d["0"].split("-")[0];
+					tooltip.text("$" + value + " Billion " + year + " - " + month); 
+
+					return tooltip.style("visibility", "visible");
+				})
+			    .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+      			.on("mouseout", function(){
+      				
+             d3.select(this)
+                //.transition()
+                //.duration(500)
+                .style("fill","steelblue");
+      				return tooltip.style("visibility", "hidden");
+      			});
+			    //.on("mouseover", function(d){console.log(d)});
+		    //加一个g，添加坐标轴
+		    svg.append("g")
+		    	.attr("class", "x axis")
+		    	.attr("transform", "translate(0," + height + ")")
+				.call(xAxis);
+
+			svg.append("g")
+				.attr("class", "y axis")
+				.call(yAxis)
+			  .append("text")
+			  	.attr("transform", "rotate(-90)")
+				.text("Gross Domestic Product, USA")
+				.attr("y", 6)
+				.attr("dy", "0.71em")
+				.attr("text-anchor", "end");
+
+
+		});	
+	</script>  
+</body>  
+</html>  

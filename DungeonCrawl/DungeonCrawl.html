@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>DungeonCrawl</title>
+	<meta charset="utf-8">
+	<script src="https://unpkg.com/react@15.3.2/dist/react.js"></script>
+	<script src="https://unpkg.com/react-dom@15.3.2/dist/react-dom.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+	<script type='text/Javascript' src='https://helloacm.com/jquery/jquery-2.1.4.min.js'></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.6/marked.min.js"></script>
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"/>
+    <!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap.min.css">
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/latest/css/bootstrap-theme.min.css">
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.0/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="https://code.jquery.com/resources/demos/style.css">
+	<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/react-bootstrap/0.30.5/react-bootstrap.js"></script>
+    <style type="text/css">
+    	body{
+    		background-color: black;
+    		color: white;
+    	}
+    	.room, .wall, .hallway{
+    		width: 10px;
+    		height: 10px;
+    		display: inline-block;
+    		/*border: 1px solid #337733;*/
+    		vertical-align: top;
+    		box-sizing: border-box;
+    	}
+/*    	.white{
+    		background-color: #ffffff;
+    	}
+    	.yellow{
+    		background-color: #ffff80;
+    	}
+    	.purple {
+    		background-color: #ff80ff;
+    	}*/
+    	.room {
+    		background-color: #ffffff;
+    	}
+    	.wall {
+    		background-color: #a6a6a6;
+    	}
+    	.hallway {
+    		background-color: #ffffff;
+    	}
+    	.me {
+    		background-color: #5c00e6;
+    	}
+    	.weapon {
+    		background-color: #e6e600;
+    	}
+    	.ladder {
+    		background-color:  #b300b3;    		
+    	}
+    	.recoverblood {
+    		background-color:  #39e600;
+    	}
+    	.enemies {
+    		background-color: #ff3300;
+    	}
+    	.contain {
+    		/*防止上下间隔*/
+    		font-size: 0px;
+    		width: 1000px;
+    		height: 1000px;
+    	}    
+    	.mist {
+    		background-color: black;
+    	}
+    	button {
+    		background-color: Transparent;
+    		border-radius: 5px;
+    	}
+    	.information div,.information button{
+    		display: inline-block;
+    	}
+    	</style>
+</head>
+<body>
+	<h1 class="text-center">React Roguelike</h1>
+	<h4 class="text-center">Kill the boss in dungeon 2</h4>
+	<div class="information text-center">
+		<div>Health:<span class="health">100</span></div>
+		<div>Weapon:<span class="weapontype">stick</span></div>
+		<div>Attack:<span class="attack">7</span></div>
+		<div>Level:<span class="Next Level">60 XP</span></div>
+		<div>Dungeon:<span class="dungeon">0</span></div>
+		<button class="mist">no mist</button>
+		<!-- <button class="wholemap">wholemap</button> -->
+		<br>
+		<div class="contain text-center" id="contain" tabindex="1"></div>
+	</div>
+	<div id="dialoglose" title="lose!">
+  		<p>ops! dead~ try again!</p>
+	</div>
+	<div id="dialogwin" title="win!">
+  		<p>wow! you win! try again!</p>
+	</div>
+	<script type="text/babel">
+		//窗的宽度，高度
+		var windowWidth;
+		var windowHeight;
+		//总地图
+		var wholemap = [];
+		//所看到的地图
+		var localmap = [];
+		//存储走廊点
+		var hallways = [];
+		//相对于走廊的方向
+		var direction = {
+			0: "NORTH",
+			1: "SOUTH",
+			2: "WEST",
+			3: "EAST"
+		};
+		var weaponRank = [
+		{
+			weaponname: "Knife",
+			attack: 7,
+		}, 
+		{
+			weaponname: "Pistol",
+			attack: 12,
+		}, 
+		{
+			weaponname: "Bolt action",
+			attack: 16,
+		}, 
+		{
+			weaponname: "Assault Rifle",
+			attack: 22,
+		}
+		];
+		var ground = 0;
+		var enemies = [];
+		//健康值和攻击力是层次的倍数
+		var enemy = {
+		  blood: 20,
+		  attack: 12,
+		  xp: 10
+		};
+		var me = {
+			x: 0,
+			y: 0,
+			blood: 100,
+			attack: 7,
+			xp: 60,
+			level: 0,
+		};
+		var boss = {
+			rightbottomx: 0,
+			rightbottomy: 0,
+			blood: 200,
+			attack: 70,
+		}
+		//回血
+		var recoverblood = [];
+		var weapon = {
+			x: 0,
+			y: 0,
+			attack: 10,
+			name: "Knife",
+		};
+		var ladder = {
+			x: 0,
+			y: 0,
+		}
+		var trueWidth;
+		var trueHeight;
+		var ismist = true;
+		//show wholemap
+		//var iswholemap = false;
+		var GameContent = React.createClass({
+			render:function() {
+				var roomDes = this.props.roomDesc.map(function(val){
+					return <div className={val.state} id={val.id} key={val.id}></div>
+				});
+				return (
+					<div className="cellcontainer">
+						{roomDes}
+					</div>
+				);
+			}
+		})
+		function getWindowSize() {
+			windowWidth = window.innerWidth;
+			//console.log(windowWidth);
+			windowHeight = window.innerHeight;
+			//console.log(windowHeight);
+		}
+		//x, y是右下角的点
+		function isSpaceEmpty(width, height, x, y) {
+			if(x  > 99 || y > 99 || x - width < 0 || y - height < 0) {
+				return "fail";
+			}
+			var rightbottom = y * 100 + x;
+			var temp;
+			//debug_state用于输出有可能是房间的点的状态
+			//var debug_state = "width" + width + "," + "height" + height + "x" + x + "y" + y + ",";
+			for(var i = 0; i < height; i++) {
+				for(var j = 0; j < width; j++){
+					temp = rightbottom - (j + i * 100);
+					//debug_state = debug_state + wholemap[temp].id + wholemap[temp].state + ", ";
+					if(wholemap[temp].state !== "wall")
+						return "fail";
+					}
+			}
+			//console.log(debug_state);
+			return "ok";
+		}
+		function createHallway(width, height, rightEdgex, bottomEdgey, dir) {
+			var newHallwayx;
+			var newHallwayy;
+			if(dir === "NORTH") {
+				//console.log("NORTH");
+				newHallwayx = rightEdgex - Math.floor(Math.random() * (width - 1));
+				newHallwayy = bottomEdgey - height;
+			}
+			if(dir === "SOUTH") {
+				//console.log("SOUTH");
+				newHallwayx = rightEdgex - Math.floor(Math.random() * (width - 1));
+				newHallwayy = bottomEdgey + 1;
+			}
+			if(dir === "WEST") {
+				//console.log("WEST");
+				newHallwayx = rightEdgex - width;
+				newHallwayy = bottomEdgey - Math.floor(Math.random() * (height - 1));
+			}
+			if(dir === "EAST") {
+				//console.log("EAST");
+				newHallwayx = rightEdgex + 1;
+				newHallwayy = bottomEdgey - Math.floor(Math.random() * (height - 1));
+			}
+			if(newHallwayx  > 99 || newHallwayy > 99 || newHallwayx < 0 || newHallwayy < 0) {
+				return false;
+			}
+			var hallwaylocation = newHallwayy * 100 + newHallwayx;
+			if(wholemap[hallwaylocation].state !== "room") {
+				//console.log("hallwaylocation:" + hallwaylocation);
+				//console.log("newHallwayx:" + newHallwayx + ",newHallwayy:" + newHallwayy);
+				//console.log("newhalloriginstate:" + wholemap[hallwaylocation].state)
+				//wholemap[hallwaylocation].state = "room";
+
+				hallways.push({coordx: newHallwayx, coordy: newHallwayy});
+
+				//console.log("hallwayslength:" + hallways.length + "hallways's last:" 
+				//+ hallways[hallways.length - 1].coordx + "," + hallways[hallways.length - 1].coordy);
+			}
+		}
+
+		function createNewRoom(smallroom) {
+			var hallway = hallways.shift();
+			if(hallway === undefined) {
+				return "fail";
+			}
+			var hallwaylocation = hallway.coordy * 100 + hallway.coordx;
+			if(wholemap[hallwaylocation].state !== "wall") {
+				//输出取出hallway后，判断其是否为room
+				//console.log("oh hallway is room");
+				return "fail";
+			}
+			var width;
+			var height;
+			if(smallroom) {
+				width = Math.floor(Math.random() * 5 + 5);
+				height = Math.floor(Math.random() * 5 + 5);
+			} else{
+				width = Math.floor(Math.random() * 5 + 15);
+				height = Math.floor(Math.random() * 5 + 15);
+			}
+
+			
+			//输出用于创建新房间的基本信息,创建其的走廊，创建其的高度
+			//console.log("I use hallway to create room" + hallway.coordx + "," +hallway.coordy 
+			//+ "I use this width and this height" + width + " ," + height);
+			
+
+			var rightEdgex;
+			var bottomEdgey;
+			var dirNum;
+			var useDir = [];
+			var flag = false;
+			do {
+				dirNum = Math.floor(Math.random() * 4);
+				var k = 0;
+				for(; k < useDir.length; k++) {
+					if(useDir[k] === dirNum)
+						break;
+				}
+				if(k !== useDir.length) continue;
+				useDir.push(dirNum);
+				//console.log(direction[dirNum.toString()]);
+				switch(direction[dirNum]) {
+					case "NORTH":
+						rightEdgex = hallway.coordx + Math.floor(Math.random() * width - 1);
+						//防止方形在hallway左上角
+						if(rightEdgex === hallway.coordx - 1) {
+							rightEdgex = hallway.coordx;
+						}
+						bottomEdgey = hallway.coordy - 1;
+						var isSpaceEmptyerror = isSpaceEmpty(width, height, rightEdgex, bottomEdgey);
+
+						//输出是否能创建房间
+						//console.log("isSpaceEmptyerror: " + isSpaceEmptyerror);
+
+						if(isSpaceEmptyerror === "ok") {
+							flag = true;
+						}
+						break;
+					case "SOUTH":
+						rightEdgex = hallway.coordx + Math.floor(Math.random() * width - 1);
+						//防止方形在hallway左下角
+						if(rightEdgex === hallway.coordx - 1) {
+							rightEdgex = hallway.coordx;
+						}
+						bottomEdgey = hallway.coordy + height;
+						var isSpaceEmptyerror = isSpaceEmpty(width, height, rightEdgex, bottomEdgey);
+						//console.log("isSpaceEmptyerror: " + isSpaceEmptyerror);
+						if(isSpaceEmptyerror === "ok") {
+							flag = true;
+						}
+						break;
+					case "WEST":
+						rightEdgex = hallway.coordx - 1;
+						bottomEdgey = hallway.coordy + Math.floor(Math.random() * height - 1);
+						//防止方形在hallway左下角
+						if(bottomEdgey === hallway.coordy - 1) {
+							bottomEdgey = hallway.coordy;
+						}
+						var isSpaceEmptyerror = isSpaceEmpty(width, height, rightEdgex, bottomEdgey);
+						//console.log("isSpaceEmptyerror: " + isSpaceEmptyerror);
+						if(isSpaceEmptyerror === "ok") {
+							flag = true;
+						}
+						break;
+					case "EAST":
+						rightEdgex = hallway.coordx + width;
+						bottomEdgey = hallway.coordy + Math.floor(Math.random() * height - 1);
+						if(bottomEdgey === hallway.coordy - 1) {
+							bottomEdgey = hallway.coordy;
+						}
+						var isSpaceEmptyerror = isSpaceEmpty(width, height, rightEdgex, bottomEdgey);
+						//console.log("isSpaceEmptyerror: " + isSpaceEmptyerror);
+						if(isSpaceEmptyerror === "ok") {
+							flag = true;
+						}
+						break;
+				}
+			}while(useDir.length !== 4 && flag !== true)
+			if(flag === false){
+				console.log("fail");
+				return 'fail';
+			}
+
+			/*输出房间创建的基本信息-房间走廊，宽高，右下角点
+			console.log("hallway x,y width,height rightedgex, rightedgey" + hallway.coordx 
+			+ "," + hallway.coordy + "," + width + "," + height + "," + rightEdgex + "," + bottomEdgey);
+			*/
+
+			var hallwaylocation = hallway.coordy * 100 + hallway.coordx;
+			wholemap[hallwaylocation].state = "hallway";
+			var rightbottom = bottomEdgey * 100 + rightEdgex;
+			var count = 0;
+			for(var i = 0; i < height; i++) {
+				for(var j = 0; j < width; j++) {
+					count = rightbottom - (j + i * 100);
+					wholemap[count].state = "room";
+				}
+			}
+			//create new hallway
+			var hallwaynum;
+			/*行不通
+			if(hallways.length > 2) {
+				hallwaynum = Math.floor(Math.random() * 4);
+			} else{
+				hallwaynum = Math.floor(Math.random() * 2) + 2;
+			}
+			*/
+			hallwaynum = 3;	
+			var hallwayDir;
+			var useHallwayDir = [];
+			useHallwayDir.push(dirNum);
+			var nottodead = 0; //防止死循环
+			while(hallwaynum != 0 && nottodead < 100) {
+				//输出房间的第几个走廊
+				//console.log("hallwaynum:" + hallwaynum);
+				hallwayDir = Math.floor(Math.random() * 4);
+				var k = 0;
+				for(; k < useHallwayDir.length; k++) {
+					if(useDir[k] === hallwayDir)
+						break;
+				}
+				if(k !== useHallwayDir.length) continue;
+				switch(direction[hallwayDir]) {
+					case "NORTH":
+						createHallway(width, height, rightEdgex, bottomEdgey, "NORTH");
+						break;
+					case "SOUTH":
+						createHallway(width, height, rightEdgex, bottomEdgey, "SOUTH");
+						break;
+					case "WEST":
+						createHallway(width, height, rightEdgex, bottomEdgey, "WEST");
+						break;
+					case "EAST":
+						createHallway(width, height, rightEdgex, bottomEdgey, "EAST");
+						break;
+				}
+				hallwaynum--;
+			}
+
+			/* 输出建好全局地图后，输出hallways
+			console.log("after a room created");
+			console.log(hallways.length);
+			hallways.map(function(val,index) {
+				console.log("index" + index + "coordx:" + val.coordx + "coordy:" + val.coordy);
+			})
+			console.log(" ");
+			*/
+			return "success";
+		}
+
+		function getNewMap() {
+			//总地图
+			wholemap = [];
+			//所看到的地图
+			localmap = [];
+			//存储走廊点
+			hallways = [];
+			enemies = [];
+			recoverblood = [];
+			for(var i = 0; i < 10000; i++) {
+				wholemap.push({id: i, state: "wall"});
+			}
+			//新建第一个hallway
+			var firstHallwayx = Math.floor(Math.random() * 25 + 25);
+			var firstHallwayy = Math.floor(Math.random() * 25 + 25);
+			var firstHallwaylocation = firstHallwayy * 100 + firstHallwayx;
+			//wholemap[firstHallwaylocation].state = "room";
+			hallways.push({coordx: firstHallwayx, coordy: firstHallwayy});
+
+			var roomcount = Math.floor(Math.random() * 7 + 18);
+			var isSmallRoom = false;
+			for(var j = 0; j < roomcount; j++) {
+				console.log("room num" + j);
+				if(createNewRoom(isSmallRoom) === 'fail') {
+					if(hallways.length === 0) {
+						return "fail";
+					}
+					j--;
+					isSmallRoom = true;
+					continue;
+				} else {
+					isSmallRoom = false;
+				}
+			}
+			var hallwayNeedToClose;
+			while(hallways.length > 0) {
+				hallwayNeedToClose = hallways.pop();
+			}
+			//建立武器，楼梯，血量和敌人位置
+			//自己的位置
+			me.x = firstHallwayx;
+			me.y = firstHallwayy;
+			wholemap[firstHallwaylocation].state = "me room";
+			//随机生成1+1+5+5=12的位置
+			var location = []; //位置
+			var tempx;
+			var tempy;
+			var templocation;
+			do{
+				tempx = Math.floor(Math.random() * 100);
+				tempy = Math.floor(Math.random() * 100);
+				templocation = tempx + tempy * 100;
+				if(wholemap[templocation].state !== "wall") {
+					location.push({x: tempx, y: tempy});
+				}
+			}while(location.length !== 12);
+			/*
+			var debuglocation = "";
+			location.map(function(val) {
+				debuglocation = val.x + "," + val.y + " ";
+			});
+			*/
+			weapon.x = location[0].x;
+			weapon.y = location[0].y;
+			templocation = weapon.x + weapon.y * 100;
+			wholemap[templocation].state = "room weapon";
+			if(ground != 2) {
+			ladder.x = location[1].x;
+			ladder.y = location[1].y;
+			templocation = ladder.x + ladder.y * 100;
+			wholemap[templocation].state = "room ladder";
+			}
+			for(var i = 0; i < 5; i++) {
+				recoverblood.push({x: location[i+2].x, y: location[i+2].y});
+				templocation = location[i+2].x + location[i+2].y * 100;
+				wholemap[templocation].state = "room recoverblood";
+			}
+			for(var i = 0; i < 5; i++) {
+				if(i === 4 && ground === 2) {
+					var originallocationx = location[i+7].x;
+					var originallocationy = location[i+7].y;
+					var generateBossSuccess = false;
+					templocation = originallocationx + originallocationy * 100;
+					//直到产生一个合适的boss
+					while(wholemap[templocation].state === "wall" 
+					|| wholemap[templocation - 1].state === "wall"
+					|| wholemap[templocation - 99].state === "wall"
+					|| wholemap[templocation - 100].state === "wall") {
+						console.log("generate a boss");
+						originallocationx = Math.floor(Math.random() * 100);
+						originallocationy = Math.floor(Math.random() * 100);
+						templocation = originallocationx + originallocationy * 100;
+					}
+					enemies.push({x: originallocationx, y: originallocationy, blood: enemy.blood});
+					boss.rightbottomx = originallocationx;
+					boss.rightbottomy = originallocationy;
+					wholemap[templocation].state = "room enemies boss";
+					templocation = templocation - 1;
+					wholemap[templocation].state = "room enemies boss";
+					templocation = templocation - 99;
+					wholemap[templocation].state = "room enemies boss";
+					templocation = templocation - 1;
+					wholemap[templocation].state = "room enemies boss";
+				} else{
+					enemies.push({x: location[i+7].x, y: location[i+7].y, blood: enemy.blood});
+					templocation = location[i+7].x + location[i+7].y * 100;
+					wholemap[templocation].state = "room enemies";
+				}
+			}
+			return "success";
+		}
+
+		function updategame() {
+			getWindowSize();
+			while(getNewMap() != "success");
+			//更新敌人和健康值攻击力
+			enemy.blood = 20 * (ground + 1);
+			enemy.attack = 12 * (ground + 1);
+			enemy.xp = 10 * (ground + 1);
+		}
+
+		function run() {
+		//show wholemap
+		//if(iswholemap === false){
+			localmap = [];
+			var startRenderx = me.x - Math.floor(trueWidth / 2);
+			var startRendery = me.y - Math.floor(trueHeight / 2);
+			if(startRenderx < 0) {
+				startRenderx = 0;
+			}
+			if(startRendery < 0) {
+				startRendery = 0;
+			}
+			var stoprendery = trueHeight + startRendery;
+			if(stoprendery > 100) {
+				startRendery = 0;
+				stoprendery = 100;
+			}
+			var stoprenderx = trueWidth + startRenderx;
+			if(stoprenderx > 100) {
+				startRenderx = 0;
+				stoprenderx = 100;
+			}
+			var newObject = {}
+			//局部地图
+			for(var i = startRendery; i < stoprendery; i++) {
+				for(var j = startRenderx; j < stoprenderx; j++) {
+					var melocation = j + i * 100;
+					newObject = Object.assign({}, wholemap[melocation]);
+					localmap.push(newObject);
+					if(ismist === true 
+					&& !(j > me.x - 10 && j < me.x + 10 
+					&& i > me.y - 10 && i < me.y + 10)) {
+						localmap[localmap.length - 1].state += " mist";
+					}
+				}
+			}
+			ReactDOM.render(
+			  <GameContent roomDesc={localmap} />,
+			  document.getElementById('contain')
+			);
+			//} else{
+			//console.log("hello world");
+			//$(".contain").width(1000).height(1000);
+			//ReactDOM.render(
+			//  <GameContent roomDesc={wholemap} />,
+			//  document.getElementById('contain')
+			//);
+			//}
+		}
+
+		$(".contain").keyup(function(event) {
+			event.preventDefault();
+			var keyCode = event.keyCode;
+			if(keyCode == 37 || keyCode == 38 || keyCode == 39 || keyCode == 40) {
+				var melocationx = me.x;
+				var melocationy = me.y;
+				var oldlocation = melocationx + melocationy * 100;
+				switch(keyCode) {
+					case 37:
+						melocationx = melocationx - 1;
+					break;
+					case 38:
+						melocationy = melocationy - 1;
+					break;
+					case 39:
+						melocationx = melocationx + 1;
+					break;
+					case 40:
+						melocationy = melocationy + 1;
+					break;
+				}
+
+				// 如果是阶梯的话
+				if(melocationx === ladder.x && melocationy === ladder.y) {
+					//防止阶梯连续下降
+					//$(".contain").attr("tabindex", 0);
+					ground++;
+					$(".dungeon").text(ground);
+					updategame();
+					run();
+					//setTimeout(function() {
+					//	$(".contain").attr("tabindex", 1);
+					//}, 1000)
+					return null;
+				}
+				/*
+				for(var i = 0; i < recoverblood.length; i++) {
+					if(recoverblood[i].x === melocationx && recoverblood[i].y === melocationy) {
+						console.log("weather");
+						me.blood += 20;
+						$(".health").text(me.blood.toString());
+						break;
+					}
+				}
+				*/
+				var melocation = melocationx + melocationy * 100;
+				var roompatt = /^room$/i;
+				var hallpatt = /^hallway$/i;
+				var recoverbloodpatt = /recoverblood/i;
+				var weaponpatt = /weapon/i;
+				var enemiespatt = /enemies/i;
+				var bosspatt = /boss/i;
+				if(!roompatt.test(wholemap[melocation].state) 
+				&& !hallpatt.test(wholemap[melocation].state)
+				&& !recoverbloodpatt.test(wholemap[melocation].state)
+				&& !weaponpatt.test(wholemap[melocation].state)
+				&& !enemiespatt.test(wholemap[melocation].state)) {
+					return null;
+				}
+				if(recoverbloodpatt.test(wholemap[melocation].state)) {
+					me.blood += 20;
+					$(".health").text(me.blood.toString());
+				}
+				if(weaponpatt.test(wholemap[melocation].state)) {
+					console.log("ground" + ground);
+					me.attack += weaponRank[ground].attack;;
+					$(".weapontype").text(weaponRank[ground].weaponname);
+					$(".attack").text(me.attack);
+				}
+				// 撞上boss
+				if(bosspatt.test(wholemap[melocation].state)) {
+					 boss.blood -= me.attack;
+					 if(boss.blood <=0) {
+					 	$("#dialogwin").dialog("open");
+					 	init();
+					 	updategame();
+						run();
+					 	return null;
+					 } else{
+					 	me.blood -= boss.attack;
+					 	// 没死
+					 	if(me.blood > 0) {
+					 		$(".health").text(me.blood);
+					 		return null;
+					 	}else {
+							$("#dialoglose").dialog("open");
+					 		init();
+					 		updategame();
+							run();
+					 		return null;
+					 	}
+					 }
+				}
+				if(enemiespatt.test(wholemap[melocation].state)) {
+					// 在和哪一个敌人战斗
+					var nowEnemyIndex;
+					for(var i = 0; i < enemies.length; i++) {
+						if(enemies[i].x === melocationx && enemies[i].y === melocationy) {
+							nowEnemyIndex = i;
+						}
+					}
+					console.log(nowEnemyIndex);
+					var meattack = Math.floor((Math.random() * 7) + me.attack - 7);
+					var enemyattack = Math.floor((Math.random() * 6) + enemy.attack - 7);
+
+					enemies[nowEnemyIndex].blood -= meattack;
+					if(enemies[nowEnemyIndex].blood <= 0) {
+						enemies.splice(nowEnemyIndex, 1);
+						me.xp -= enemy.xp;
+						$(".Next").text(me.xp);
+						if(me.xp <= 0) {
+							me.level = me.level + 1;
+							me.xp = (me.level + 1) * 60;
+							me.blood += 100;
+							me.attack += 12;
+							$(".health").text(me.blood);
+							$(".attack").text(me.attack);
+							$(".Next").text(me.xp);							
+						}
+					}else {
+						me.blood -= enemyattack;
+						//没死
+						if(me.blood > 0) {
+							$(".health").text(me.blood.toString());
+							return null;
+						} else{
+							$("#dialoglose").dialog("open");
+							init();
+					 		updategame();
+							run();
+							return null;
+						}
+					}
+				}
+				me.x = melocationx;
+				me.y = melocationy;
+				wholemap[oldlocation].state = "room";
+				wholemap[melocation].state = "me room";
+				run();
+			}else {
+				return null;
+			}
+		});
+		function init() {
+			$("#dialoglose").dialog({
+      		autoOpen: false,
+     		 show: {
+       		effect: "blind",
+        	duration: 1000
+     		 },
+      		hide: {
+       		 effect: "explode",
+        	duration: 1000
+      		}
+    		});
+    		$("#dialogwin").dialog({
+      		autoOpen: false,
+     		 show: {
+       		effect: "blind",
+        	duration: 1000
+     		 },
+      		hide: {
+       		 effect: "explode",
+        	duration: 1000
+      		}
+    		});
+			$(".health").text(100);
+			$(".weapontype").text("stick");
+			$(".attack").text(7);
+			$(".Next").text("60 xp");
+			$(".dungeon").text(0);
+			ground = 0;
+
+
+			wholemap = [];
+			//所看到的地图
+			localmap = [];
+			//存储走廊点
+			hallways = [];
+			enemies = [];
+			//健康值和攻击力是层次的倍数
+			me = {
+			x: 0,
+			y: 0,
+			blood: 100,
+			attack: 7,
+			xp: 60,
+			level: 0,
+			};
+			boss = {
+			rightbottomx: 0,
+			rightbottomy: 0,
+			blood: 200,
+			attack: 70,
+			}
+			//回血
+			recoverblood = [];
+			weapon = {
+			x: 0,
+			y: 0,
+			attack: 10,
+			name: "Knife",
+			};
+			ladder = {
+			x: 0,
+			y: 0,
+			}
+			ismist = true;
+			//show wholemap
+			//iswholemap = false;
+		}
+		//根据窗口大小调整视图大小
+		window.onresize = resize;
+
+		function resize() {
+			var w = window.innerWidth;
+			var h = window.innerHeight;
+			var viewWidth = (Math.floor(w * 0.9) - Math.floor(w * 0.9) % 10);
+			var viewHeight = (Math.floor(h * 0.5) - Math.floor(h * 0.5) % 10);
+			if(viewWidth > 1000) {
+				viewWidth = 1000;
+			}
+			if(viewHeight > 1000) {
+				viewHight = 1000;
+			}
+			trueWidth = viewWidth / 10;
+			trueHeight = viewHeight / 10;
+			$(".contain").width(viewWidth).height(viewHeight);
+			run();
+		}
+		$(".mist").on("click", function() {
+			if(ismist === true){
+				ismist = false;
+			} else{
+				ismist = true;
+			}
+			run();
+		});
+		//show wholemap
+		//$(".wholemap").on("click", function() {
+			//if(iswholemap === false) {
+			//	iswholemap = true;
+			//}else {
+			//	iswholemap = false;
+			//}
+			//console.log("hello");
+			//run();
+		//});
+		
+		$(document).ready(function() {
+			var w = window.innerWidth;
+			var h = window.innerHeight;
+			var viewWidth = (Math.floor(w * 0.9) - Math.floor(w * 0.9) % 10);
+			var viewHeight = (Math.floor(h * 0.5) - Math.floor(h * 0.5) % 10);
+			if(viewWidth > 1000) {
+				viewWidth = 1000;
+			}
+			if(viewHeight > 1000) {
+				viewHight = 1000;
+			}
+			trueWidth = viewWidth / 10;
+			trueHeight = viewHeight / 10;
+			$(".contain").width(viewWidth).height(viewHeight);
+			init();
+			updategame();
+			run();
+		});
+	</script>
+</body>

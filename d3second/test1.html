@@ -1,0 +1,215 @@
+<html>  
+<head>  
+	<meta charset="utf-8">  
+	<title>完整的柱形图</title>  
+
+<style>
+	.area {
+		fill: steelblue;
+	}	
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+	svg {
+		margin: auto auto;
+		display: block
+	}
+</style>
+</head>
+<body>  
+	<div class="container"></div>
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>  
+	<script>
+		var margin = {top: 100, right: 100, bottom: 100, left: 100}, //坐标轴离svg的距离
+			//width = 960 - margin.left - margin.right, //坐标轴宽度
+			//height = 500 - margin.top - margin.bottom; //坐标轴的高度
+			width = 1240 - margin.left - margin.right, //坐标轴宽度
+			height = 600 - margin.top - margin.bottom; //坐标轴的高度
+
+		var format = d3.time.format("%M:%S");
+
+		function calculateMBFT(time) {
+			var fastTime = time[0];
+			var fastTimehaomiao = fastTime.getTime();
+			return time.map(function(d) {
+				var deltahaomiao = d.getTime() - fastTimehaomiao;
+				var afterdayleavehaomiao= deltahaomiao % (24*3600*1000);
+				var afterhourleavehaomiao = afterdayleavehaomiao % (3600*1000);
+				var minutes = Math.floor(afterhourleavehaomiao / (60 * 1000));
+				var seconds = Math.round((afterhourleavehaomiao % (60 * 1000)) / 1000);
+				if(minutes < 10) minutes = "0" + minutes;
+				if(seconds < 10) seconds = "0" + seconds;
+				return  format.parse(minutes + ":" + seconds);
+			});
+		}
+		var x = d3.time.scale() 
+				.range([width, 0]);
+				 
+
+		var y = d3.scale.linear()
+				.range([0, height]);
+
+		//x轴
+		var xAxis = d3.svg.axis()
+				.scale(x)
+				.orient("bottom")
+				.tickFormat(d3.time.format("%M:%S"));
+
+		var yAxis = d3.svg.axis()
+				.scale(y)
+				.orient("left");
+		
+		var color = d3.scale.category10();
+		//画布以及在画布添加'g'元素准备画坐标轴,svg实际上指g
+		var svg = d3.select(".container").append("svg")
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom);
+		var coordinates = svg.append("g") //画布中添加g来画坐标轴
+		  	.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		d3.json("https://raw.githubusercontent.com/FreeCodeCamp/ProjectReferenceData/master/cyclist-data.json", function(error, json) {
+		    if (error) return console.warn(error);
+		    data = json;
+		  	console.log(data);
+		  	
+		  	var time1 = data.map(function(d) {
+		  		return format.parse(d.Time);
+		  	});
+
+		  	var temp = calculateMBFT(time1);
+		  	//temp.reverse();
+		  	//console.log(time1);
+		  	//console.log(temp);
+		    //完整比例尺
+		    //根据数据格式改变数据格式
+		    x.domain(d3.extent(temp, function(d) {return d})); //返回最小，最大值组成的数组
+		    //y的定义域是0到数据的长度
+		    y.domain([1, data.length + 5]);
+		    //console.log(format.parse("00:00"));
+		    //todo 颜色啊之类的
+
+		    // draw dots
+			var dotandtext = coordinates.selectAll(".dotandtext")
+			    .data(data)
+			  .enter().append("g")
+			    .attr("class", "dotandtext")
+			    .attr("transform", function(d, i) {
+					return "translate(" + x(temp[i]) + "," + y(i + 1) + ")";
+			 	}); 
+
+			dotandtext.append("circle")
+			    .attr("r", 3.5)
+			    //.attr("cx", function(d, i) { return x(temp[i]);})
+			    //.attr("cy", function(d, i) { return y(i + 1);})
+			    .style("fill", function(d, i) { 
+			    if(d.Doping != "") 
+			      	return color("No doping allegations"); //新大陆！这样子就定义了color的定义域，可以用color.domain()访问了！
+			      return color("Riders with doping allegations");
+			    })
+			    .on("mouseover", function(d) {
+			      	var text = d.Name + ": " + d.Nationality + " Year:" + d.Year
+			      		+ " Time:" + d.Time + " " + d.Doping;
+			      	tooltip.text(text)
+			      		.style("visibility", "visible");
+			      })
+			      .on("mouseout", function(d) {
+			      	tooltip.style("visibility", "hidden");
+			      });
+
+			dotandtext.append("text")
+			    .attr("transform", "translate(" + 10 +"," + 3.5 + ")")
+			    .attr("font-size", "7")
+			    .text(function(d) {return d.Name});
+
+			//文字
+			//var head = .append("g")
+			//.attr("transform", "translate(" + x(temp[temp.length - 1]) + ",0)");
+
+			//todo 文字排版
+
+			svg.append("text")
+				.attr("transform", "translate(" + (width + margin.left + margin.right)/2.0 + ",30)")
+				.attr("font-size", "20px")
+				.text("Doping in Professional Bicycle Racing")
+				//.attr("y", 20)
+				.attr("text-anchor", "middle");
+
+			svg.append("text")
+				.attr("transform", "translate(" + (width + margin.left + margin.right)/2.0 + ", 50)")
+				.attr("font-size", "15px")
+				.text("35 Fastest times up Alpe d'Huez")
+				//.attr("y", 15)
+				.attr("text-anchor", "middle");
+
+			svg.append("text")
+				.attr("transform", "translate(" + (width + margin.left + margin.right)/2.0 + ",65)")
+				.attr("font-size", "10px")
+				.text("Normalized to 13.8km distance")
+				//.attr("y", 10)
+				.attr("text-anchor", "middle");
+			
+		    //加一个g，添加坐标轴
+		    coordinates.append("g")
+		    	.attr("class", "x axis")
+		    	.attr("transform", "translate(0," + height + ")")
+				.call(xAxis);
+
+			coordinates.append("text")
+		    	.attr("transform", "translate(" +width/2.0 + "," + (height + 50) + ")")
+		    	.text("Normalized to 13.8km distance")
+		    	.attr("text-anchor", "middle");
+
+			coordinates.append("g")
+				.attr("class", "y axis")
+				.call(yAxis)
+			  .append("text")
+			  	.attr("transform", "rotate(-90)")
+				.text("Ranking")
+				.attr("y", 6)
+				.attr("dy", "0.71em")
+				.attr("text-anchor", "middle");
+
+			//旁注
+			  // draw legend
+			  var legend = coordinates.selectAll(".legend")
+			      .data(color.domain()) //竟然可以这样用!
+			    .enter().append("g")
+			      .attr("class", "legend")
+			      .attr("transform", function(d, i) { return "translate(0," + (height/2 + (i - color.domain().length / 2) * 20) + ")"; });
+
+			  //console.log(color.domain());
+			  // draw legend colored rectangles
+			  legend.append("circle")
+			      .attr("cx", width - 3.5)
+			      .attr("r", 3.5)
+			      .style("fill", color);
+
+			  // draw legend text
+			  legend.append("text")
+			      .attr("x", width - 24)
+			      .attr("dy", ".35em")
+			      .style("text-anchor", "end")
+			      .attr("font-size", "7")
+			      .text(function(d) { return d;})
+
+			//tooltip		
+			var tooltip = d3.select("body")
+				.append("div")
+			    .style("position", "absolute")
+			    .style("z-index", "10")
+			    .style("visibility", "hidden")
+			    .style("background", "#000000")
+			    .style("color", "#ffffff")
+			    .style("opacity", 0.6)
+			    .style("border-radius", "5px")
+			    .text("a simple tooltip")
+			    .style("top", margin.top.toString())
+			    .style("left", margin.left + 100)
+			    .style("width", "200px");	
+		});	
+	</script>  
+</body>  
+</html>  

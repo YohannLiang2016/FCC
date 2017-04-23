@@ -1,0 +1,149 @@
+
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="flags/flags.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script>
+<style>
+body {
+    font-family: "Lucida Sans Unicode", "Lucida Grande", sans-serif;
+}
+
+h1 {
+  text-align: center;
+}
+
+.canvas {
+  border: 1px solid black;
+  height: 600px;
+  width: 800px;
+  margin: auto;
+  display: block;
+}
+
+.flag {
+  position: absolute;
+}
+
+.flagbox {
+  position: absolute;
+}
+
+.link {
+  stroke: #999;
+}
+
+#tip {
+  display: none;
+  position: absolute;
+  text-align: center;
+  color: white;
+  padding: 5px;
+  background: rgba(100, 100, 100, 0.9);
+  border-radius: 5px;
+}
+</style>
+</head>
+<body>
+  <h1>National Contiguity Force Directed Graph</h1>
+  <div class = "canvas">
+    <div class="flagbox"></div>
+  </div>
+  <div id="tip"></div>
+  <p>Dataset from: Correlates of War Project. Direct Contiguity Data, 1816-2006. Version 3.1. Online: <a href="http://correlatesofwar.org">http://correlatesofwar.org</a>.</p>
+  <script>
+
+//Force directed graph of National Contiguity using D3.js for freeCodeCamp's Data Visualization certificate. Project requirements listed here: https://www.freecodecamp.com/challenges/show-national-contiguity-with-a-force-directed-graph
+
+var forceGraph = (function() {
+  var width = 800,
+    height = 600;
+
+  var canvas = d3.select(".canvas")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  d3.json("https://raw.githubusercontent.com/DealPete/forceDirected/master/countries.json", function(error, json) {
+    if (error) return console.warn(error);
+    var nodes = json.nodes,
+      links = json.links;
+
+    var force = d3.layout.force()
+      .nodes(nodes)
+      .links(links)
+      .distance(40)
+      .charge(-80)
+      .size([width, height]);
+
+    var drag = force.drag()
+      .on("dragstart", dragstart);
+
+    force.nodes(nodes)
+      .links(links)
+      .start();
+
+    var link = canvas.selectAll(".link")
+      .data(links);
+
+    link.enter()
+      .append("line")
+      .attr("class", "link")
+      .style("stroke-width", 1);
+
+    link.exit().remove();
+
+    var node = d3.select(".canvas").select(".flagbox").selectAll(".node")
+      .data(nodes);
+
+    node.enter()
+      .append("img")
+      .attr("class", function(d) {
+        return "node flag flag-" + d.code;
+      })
+      .call(force.drag)
+      .on("mouseover", function(d) {
+        d3.select("#tip").style("display", "block")
+          .html(d.country)
+          .style("left", d3.event.pageX - 25 + "px")
+          .style("top", d.y + 35 + "px");
+      })
+      .on("mouseout", function(d) {
+        d3.select("#tip").style("display", "none");
+      })
+      .on("dblclick", dblclick)
+      .call(drag);
+
+    node.exit().remove();
+
+    force.on("tick", function() {
+      link.attr("x1", function(d) {
+          return d.source.x;
+        })
+        .attr("y1", function(d) {
+          return d.source.y;
+        })
+        .attr("x2", function(d) {
+          return d.target.x;
+        })
+        .attr("y2", function(d) {
+          return d.target.y;
+        });
+      node.style('left', function(d) {
+        return d.x - 5 + "px";
+      }).style('top', function(d) {
+        return d.y - 5 + "px";
+      });
+    });
+  });
+
+  function dblclick(d) {
+    d3.select(this).classed("fixed", d.fixed = false);
+  }
+
+  function dragstart(d) {
+    d3.select(this).classed("fixed", d.fixed = true);
+  }
+
+})();
+  </script>
+</body>

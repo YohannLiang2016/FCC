@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<style>
+
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes circle {
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+  
+.link  {
+  fill: none;
+  stroke-width: 1.5;
+  stroke: #aaa;
+  }
+
+.node{
+  position: absolute;
+  border-radius: 50%;
+  border: solid 2px #635d90;
+  background: #635d90;
+  box-shadow: 0 0 2px #999;
+  transform: translate(-50%, -50%);
+  }
+
+
+ svg{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+</style>
+<link rel="stylesheet" type="text/css" href="flags.css">
+</head>
+<body>
+<svg width="960" height="600"></svg>
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+//鼠标拖拽时候的函数
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+
+//建立svg
+var svg = d3.select("svg"),
+    width = +svg.attr("width"),
+    height = +svg.attr("height");
+
+//新建颜色
+var color = d3.scaleOrdinal(d3.schemeCategory20);
+//第一步，建立基本的布局
+var simulation = d3.forceSimulation()
+    .force("link", d3.forceLink().id(function(d, i) { return i; })) //为线建立id？,后面的forcelin有用到
+    .force("charge", d3.forceManyBody()) //互斥力，https://en.wikipedia.org/wiki/Three-body_force？？是这个意思？
+    .force("center", d3.forceCenter(width / 2, height / 2)); //Creates a new centering force with the specified x- and y- coordinates. 一定在中心？
+
+d3.json("https://raw.githubusercontent.com/DealPete/forceDirected/master/countries.json", function(error, graph) {
+  if(error) throw error;
+//var graph = 
+console.log(graph.links);
+console.log(graph.nodes);
+  //第二步，将原始数据转换为力学图的数据
+  var link = svg.append("g") //加一个g
+    .attr("class", "links")  //这个g的class
+    .selectAll("line")       //选中这里面的所有line
+    .data(graph.links)       //绑定数据
+    .enter().append("line")  //多补少补
+    //.attr("stroke-width", function(d) {return Math.sqrt(d.value);});   //线的粗细
+/*
+  var node = svg.append("g")
+    .attr("class", "nodes")
+    .selectAll("circle")
+    .data(graph.nodes)
+    .enter().append("circle")
+    .attr("r", 5) //圆的属性，半径
+    .call(d3.drag() 
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended)); //在这里定义drag的方法
+      */
+  var node = svg.append("g")
+    .attr("class", "nodes")
+       .selectAll("img")
+      .data(graph.nodes)
+      .enter().append("img")
+      .call(d3.drag() 
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended))
+      .attr("class", function(d){ return "node flag flag-" + d.code}  );
+
+  //node一定要在link前面
+  simulation.nodes(graph.nodes)
+  .on("tick", ticked); //每次滴答(ticked)都更新点和线
+  simulation.force("link")
+  .links(graph.links) //转换好了，放到这
+
+
+  function ticked() {
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+    node
+        .attr("top", function(d) { return d.y + "px"; })
+        .attr("left", function(d) { return d.x + "px"; });
+  }  
+});
+</script>
+
+
+
+
+
+
+
+
+
+
+
+</script>

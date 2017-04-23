@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="flags/flags.css">
+<style>
+
+.links line {
+  stroke: #999;
+  stroke-opacity: 0.6;
+}
+
+.nodes {
+    width: 1000px;
+    height: 1000px;
+     position: absolute;
+}
+.flag {
+    position: absolute;
+}
+</style>
+</head>
+<body>
+<svg width="960" height="600"></svg>
+
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.17/d3.min.js"></script> -->
+<script src="https://d3js.org/d3.v4.min.js"></script>
+<script>
+//这个fx,fy是在每个tick之后都会让node.x，node.y重设为这个
+//fx = null, fy = null表明解开一个非固定点
+//嗯，不懂
+//https://github.com/d3/d3-force
+function dragstarted(d) {
+  if (!d3.event.active) simulation.alphaTarget(0.3).restart();
+  d.fx = d.x;
+  d.fy = d.y;
+}
+
+function dragged(d) {
+  d.fx = d3.event.x;
+  d.fy = d3.event.y;
+}
+
+function dragended(d) {
+  if (!d3.event.active) simulation.alphaTarget(0);
+  d.fx = null;
+  d.fy = null;
+}
+
+ d3.json("https://raw.githubusercontent.com/DealPete/forceDirected/master/countries.json", function(error, json) {
+    graph = json;
+    console.log(graph);
+    var svg = d3.select("svg"),
+        width = +svg.attr("width"),
+        height = +svg.attr("height");
+
+// var color = d3.scaleOrdinal(d3.schemeCategory20); //d3.scaleOrdinal([range]),定义了范围，20个颜色
+
+//新建力图，d3.forceSimulation([nodes])，没有node的话，node默认为空数组
+//simulation.force(name[, force]),名字+特定的force元素,其中，第二个元素是指三者以上连线
+//d3.forceCenter([x, y])是在x，y新建一个力中心
+//var simulation = d3.forceSimulation()
+//    .force("link", d3.forceLink().id(function(d,index) { return index; }))
+//    .force("charge", d3.forceManyBody()) 
+//    .force("center", d3.forceCenter(width / 2, height / 2));
+
+    var nodes = json.nodes,
+      links = json.links;
+    var simulation = d3.layout.force()
+      .nodes(nodes)
+      .links(links)
+      .distance(40)
+      .charge(-80)
+      .size([width, height]);
+
+
+
+      var drag = simulation.drag()
+          .on("dragstart", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended)
+
+//stroke-width线宽
+//添加线
+  var link = svg.append("g")
+      .attr("class", "links")
+    .selectAll("line")
+    .data(graph.links)
+    .enter().append("line");
+      //.attr("stroke-width", function(d) { return Math.sqrt(d.value); });
+//添加节点
+//注意color(d.group)这里边用边定义了定义域
+//通过call(d3.drag().on(function))来绑定事件
+
+  var node = svg.append("g")
+      .attr("class", "nodes")
+    .selectAll("node")
+    .data(graph.nodes)
+    .enter().append("img")
+      .attr("class",function(d) {
+        return "node flag flag-" + d.code;
+      })
+      //.attr("fill", function(d) { return color(d.group); })
+      .call(drag);
+
+
+  node.append("title")
+      .text(function(d) { return d.country; });
+  //力图绑定节点和??tick事件，好像tick是用来更新的和Link
+  //http://stackoverflow.com/questions/28745398/why-do-we-need-force-ontick-in-d3
+  simulation
+      .nodes(graph.nodes)
+      .on("tick", ticked);
+
+  simulation.force("link")
+      .links(graph.links);
+
+  function ticked() {
+    link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+    node
+        .attr("x", function(d) { return d.x; })
+        .attr("y", function(d) { return d.y; });
+  }
+});
+
+
+//todo增大svg和添加方块node
+</script>
+</body>

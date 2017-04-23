@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8">
+<style>
+.tooltip {
+  padding: 10px;
+  background: #000;
+  color: #fff;
+  font-size: 14px;
+  border-radius: 5px;
+  position: absolute;
+  box-shadow: 0 0 10px #333;
+  opacity: 0;
+ }
+#graph, svg{
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+#graph{
+  z-index: 999;
+}
+.link{  
+  fill: none;
+  stroke-width: 1.5;
+  stroke: #aaa;
+}
+.node{
+  position: absolute;
+  background: #635d90;
+  transform: translate(-50%, -50%);
+}
+/*添加选中变框*/
+.node:hover{
+  box-shadow: 0 0 10px #000;
+}
+</style>
+<link rel="stylesheet" type="text/css" href="flags.css">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/4.2.2/d3.min.js"></script>
+</head>
+
+<body>
+<span class="tooltip"></span>
+<script type="text/javascript">
+  //怎么加tooptip
+  //http://www.ourd3js.com/wordpress/1245/
+  //力图套路
+  //与套路不同的是这里代码node用的是div，而不是'g'？不懂https://bl.ocks.org/mbostock/4062045
+  var width = window.innerWidth ;
+  var height = window.innerHeight;
+  //第一步设一个div,用来装node
+  var graph = d3.select("body")
+    .append("div")
+    .style("width", width + "px")
+    .style("height", height + "px")
+    .attr("id", "graph");
+  //第二步添加svg，用来装link
+  var svg = d3.select("body")
+    .append("svg")
+    .attr("width", width)
+    .attr("height", height);
+  //
+  var fdg = d3.forceSimulation()
+      .force("link", d3.forceLink()) //有strength, distance参数的选择
+      .force("center", d3.forceCenter(width/2, height/2)) //设置在中间
+      .force("charge", d3.forceManyBody()); //也有参数选，以上三个个是比选项
+
+  d3.json("https://raw.githubusercontent.com/DealPete/forceDirected/master/countries.json", function(error, data) {
+    if(error) throw error;
+    
+    var div = d3.select(".tooltip");
+    //数据转换+绑定悬空效果    
+   
+    var node = graph
+      .attr("class", "nodes")
+      .selectAll("img")
+      .data(data.nodes)
+      .enter().append("img")
+      .call(d3.drag() //drag事件
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended))
+      .on("mouseover", function(d){
+        div.transition()
+          .duration(100)
+          .style("opacity", 1);
+        div.html(d.country);
+        // div.style("left",  (d3.event.pageX > (width - 200)) ? (d3.event.pageX - 130)+ "px":(d3.event.pageX + 30) + "px")
+          // .style("top", (d3.event.pageX > (width - 200)) ? (d3.event.pageY - 44) + "px":(d3.event.pageY - 30) + "px");
+        div.style("left",  d3.event.pageX + "px")
+          .style("top", (d3.event.pageY + 20) +"px");
+      })
+      .on("mouseout", function(){
+        div.transition()
+          .duration(100)
+          .style("opacity", 0)
+      })
+      .attr("class", function(d){ return "node flag flag-" + d.code}  );
+    
+    var link = svg.append("g")
+        .attr("class", "links")
+      .selectAll("line")
+      .data(data.links)
+      .enter().append("line")
+      .attr("class", "link");
+    //绑定
+    fdg
+      .nodes(data.nodes)
+      .on('tick', tick);
+    
+    fdg.force("link")
+      .links(data.links);
+    //效果函数
+    function tick() {
+      node
+        .style("top", function(d) { return d.y + "px"; } )
+        .style("left", function(d) { return d.x + "px"; });
+      
+      link
+        .attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+    }
+
+    //基本固定套路
+    function dragstarted(d) {
+    if (!d3.event.active) fdg.alphaTarget(0.3).restart();
+    if (d3.event.x > 20 && d3.event.x < width -20) //d3.event.x当前坐标
+    d.fx = d3.event.x; //d.fx
+    if (d3.event.y > 60 && d3.event.y < height-20)
+    d.fy = d3.event.y;
+  }
+
+  function dragged(d) {
+    if (d3.event.x > 20 && d3.event.x < width -20)
+    d.fx = d3.event.x; //the node’s fixed x-position节点的固定坐标
+    if (d3.event.y > 60 && d3.event.y < height-20)
+    d.fy = d3.event.y;
+    }
+
+  function dragended(d) {
+    if (!d3.event.active) fdg.alphaTarget(0);
+    d.fx = null; //最后解除固定，不解除的话，就以后都不变了
+    d.fy = null;
+  }
+});
+</script>
+</body>
